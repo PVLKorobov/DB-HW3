@@ -14,14 +14,11 @@ RIGHT JOIN tracks t ON a.id = t.album_id
 GROUP BY a.album_name ;
 
 -- Все исполнители, которые не выпустили альбомы в 2020 году.
-SELECT a.author_name FROM authors a 
-LEFT JOIN author_album aa ON a.id = aa.author_id 
-LEFT JOIN albums al ON aa.album_id = al.id 
-WHERE  (SELECT COUNT(a2.author_name) FROM authors a2
-		LEFT JOIN author_album aa ON a.id = aa.author_id 
-		LEFT JOIN albums al ON aa.album_id = al.id
-		WHERE al.release_year = 2020) = 0
-GROUP BY a.author_name;
+SELECT a.author_name FROM authors a
+WHERE a.author_name NOT IN (SELECT a2.author_name FROM authors a2
+			  LEFT JOIN author_album aa ON aa.author_id = a2.id
+			  LEFT JOIN albums al ON aa.album_id = al.id
+			  WHERE al.release_year = 2020);
 
 -- Названия сборников, в которых присутствует конкретный исполнитель (Linkin Park).
 SELECT c.compilation_name FROM compilations c 
@@ -34,15 +31,11 @@ WHERE au.author_name = 'Linkin Park';
 
 -- Названия альбомов, в которых присутствуют исполнители более чем одного жанра.
 SELECT DISTINCT al.album_name FROM albums al
-LEFT JOIN author_album aa ON al.id = aa.album_id 
-LEFT JOIN authors a ON a.id = aa.author_id 
-LEFT JOIN author_genre ag ON a.id = ag.author_id
-WHERE  a.author_name IN (SELECT a.author_name FROM authors a 
-						 LEFT JOIN author_genre ag ON a.id = ag.author_id
-						 WHERE a.author_name IN (SELECT a2.author_name FROM authors a2
-						 LEFT JOIN author_genre ag2 ON a2.id = ag2.author_id
-						 GROUP BY a2.author_name
-						 HAVING COUNT(*) > 1));
+LEFT JOIN author_album aa ON aa.album_id = al.id
+LEFT JOIN authors a ON aa.author_id = a.id
+LEFT JOIN author_genre ag ON ag.author_id = a.id
+GROUP BY al.album_name, a.id
+HAVING COUNT(ag.genre_id) > 1;
 
 -- Наименования треков, которые не входят в сборники
 SELECT t.track_name FROM tracks t
